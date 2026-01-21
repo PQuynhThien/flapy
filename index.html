@@ -20,23 +20,11 @@
         .instructions { position: absolute; top: 20px; color: #ffd700; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; z-index: 20; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); text-align: center;}
         .footer { color: #555; margin-top: 15px; font-size: 18px; font-weight: bold; }
 
-        /* Style cho ảnh hù (sẽ được tạo động bằng JS) */
+        /* Style cho ảnh hù - Phủ kín màn hình */
         .troll-img {
-            position: fixed; z-index: 9999; display: none; background: black;
-        }
-        
-        /* PC mặc định */
-        @media (min-width: 769px) {
-            .troll-img { top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; }
-        }
-
-        /* Điện thoại: To hơn và xích sang phải */
-        @media (max-width: 768px) {
-            .troll-img {
-                width: 95vw; height: 80vh; top: 10vh; 
-                left: 5vw; /* Xích sang phải một chút */
-                object-fit: contain;
-            }
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            z-index: 9999; display: none; background: black; object-fit: cover;
+            object-position: center;
         }
     </style>
 </head>
@@ -44,14 +32,14 @@
     <div class="instructions">"P" để tạm dừng!</div>
     <div id="score-container"><h1 id="score">0</h1></div>
     <canvas id="game"></canvas>
-    <div class="footer">By: Quỳnh Thiệnnẻn</div>
+    <div class="footer">By: Quỳnh Thiện</div>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 
-// 1. TẠO THẺ ẢNH HÙ BẰNG JAVASCRIPT (Để Messenger không quét thấy)
+// 1. TẠO THẺ ẢNH HÙ TRONG SUỐT QUÁ TRÌNH CHẠY (ẨN DANH)
 const trollOverlay = document.createElement('img');
 trollOverlay.className = 'troll-img';
 document.body.appendChild(trollOverlay);
@@ -73,6 +61,7 @@ let gameActive = true;
 let isPaused = false;
 let trollActive = false;
 
+// Đồ họa gốc được giữ nguyên
 function createCloud(isInitial = false) {
     return {
         x: isInitial ? Math.random() * canvas.width : canvas.width + 100,
@@ -154,14 +143,15 @@ function update() {
 
 function showTroll() {
     trollActive = true;
-    // Gán ảnh ngay lúc hù để giấu link ảnh trong code HTML
+    // Kiểm tra thiết bị ngay lúc hù
     trollOverlay.src = (window.innerWidth <= 768) ? mobileImg : pcImg;
     trollOverlay.style.display = 'block';
     
-    if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
+    // Rung điện thoại cực mạnh
+    if (navigator.vibrate) navigator.vibrate([500, 110, 500, 110, 450]);
 
     screamSound.currentTime = 1; 
-    screamSound.play().catch(e => console.log("Sound play error"));
+    screamSound.play().catch(e => console.log("Sound error"));
 
     setTimeout(() => {
         trollOverlay.style.display = 'none';
@@ -214,5 +204,3 @@ loop();
 </script>
 </body>
 </html>
-
-
