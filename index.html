@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Bird Ultimate</title>
+    <meta property="og:image" content="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5i0mQDnN6w1lcgFPcS45IXwDwKZyZ2xbwRw&s">
+    <style>
+        body { 
+            margin: 0; overflow: hidden; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; height: 100vh; 
+            background: #1a1a1a; font-family: 'Segoe UI', sans-serif; touch-action: manipulation; 
+        }
+        canvas { 
+            border: 6px solid #333; border-radius: 10px; box-shadow: 0 0 50px rgba(0,0,0,0.8); 
+            background: #4ec0ca; cursor: pointer; max-width: 95vw; max-height: 80vh;
+        }
+        #score-container { position: absolute; top: 80px; text-align: center; width: 100%; pointer-events: none; z-index: 5; }
+        #score { color: white; font-size: 80px; font-weight: 900; text-shadow: 4px 4px 0px #000, 0 0 20px rgba(0,0,0,0.5); margin: 0; }
+        .instructions { position: absolute; top: 20px; color: #ffd700; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; z-index: 20; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); text-align: center;}
+        .footer { color: #555; margin-top: 15px; font-size: 18px; font-weight: bold; }
+
+        /* Style cho ảnh hù (sẽ được tạo động bằng JS) */
+        .troll-img {
+            position: fixed; z-index: 9999; display: none; background: black;
+        }
+        
+        /* PC mặc định */
+        @media (min-width: 769px) {
+            .troll-img { top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; }
+        }
+
+        /* Điện thoại: To hơn và xích sang phải */
+        @media (max-width: 768px) {
+            .troll-img {
+                width: 95vw; height: 80vh; top: 10vh; 
+                left: 5vw; /* Xích sang phải một chút */
+                object-fit: contain;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">"P" để tạm dừng!</div>
+    <div id="score-container"><h1 id="score">0</h1></div>
+    <canvas id="game"></canvas>
+    <div class="footer">By: Quỳnh Thiệnnẻn</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreDisplay = document.getElementById('score');
+
+// 1. TẠO THẺ ẢNH HÙ BẰNG JAVASCRIPT (Để Messenger không quét thấy)
+const trollOverlay = document.createElement('img');
+trollOverlay.className = 'troll-img';
+document.body.appendChild(trollOverlay);
+
+const pcImg = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRy3bNwDRuZUaFBpS3ma3AFea9TInu9uuAeNQ&s";
+const mobileImg = "https://i.guim.co.uk/img/media/775e8cb61ce6adc0c20352a1f4d57cee6312f259/0_1_810_486/master/810.jpg?width=1200&height=1200&quality=85&auto=format&fit=crop&s=fe205a02fe349852d1a76a260f273aee";
+
+const screamSound = new Audio("https://www.myinstants.com/media/sounds/screamers-clamoring-with-halloween-music.mp3");
+
+canvas.width = 450;
+canvas.height = 650;
+
+let bird = { x: 80, y: 300, radius: 15, velocity: 0, gravity: 0.22, jump: -4.8, rotation: 0 };
+let pipes = [];
+let clouds = [];
+let frame = 0;
+let score = 0;
+let gameActive = true;
+let isPaused = false;
+let trollActive = false;
+
+function createCloud(isInitial = false) {
+    return {
+        x: isInitial ? Math.random() * canvas.width : canvas.width + 100,
+        y: Math.random() * 250,
+        speed: 0.3 + Math.random() * 0.8,
+        scale: 0.5 + Math.random() * 1,
+        opacity: 0.4 + Math.random() * 0.5
+    };
+}
+for(let i=0; i<8; i++) clouds.push(createCloud(true));
+
+function drawBird() {
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    bird.rotation = Math.min(Math.PI / 3, Math.max(-Math.PI / 4, bird.velocity * 0.08));
+    ctx.rotate(bird.rotation);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(2, 4, 18, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    let birdGrad = ctx.createRadialGradient(-5, -5, 2, 0, 0, 20);
+    birdGrad.addColorStop(0, '#fff68f'); birdGrad.addColorStop(1, '#f1c40f');
+    ctx.fillStyle = birdGrad; ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+    ctx.ellipse(0, 0, 18, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "white";
+    let wingMove = Math.sin(frame * 0.3) * 5;
+    ctx.beginPath(); ctx.ellipse(-8, 2, 10, 6 + wingMove/2, -0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(8, -5, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(10, -5, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#e74c3c"; ctx.beginPath(); ctx.moveTo(15, -2); ctx.quadraticCurveTo(28, 0, 15, 6); ctx.fill(); ctx.stroke();
+    ctx.restore();
+}
+
+function drawPipes() {
+    pipes.forEach(p => {
+        let grad = ctx.createLinearGradient(p.x, 0, p.x + 60, 0);
+        grad.addColorStop(0, '#c0392b'); grad.addColorStop(0.5, '#ff7675'); grad.addColorStop(1, '#962d22');
+        ctx.fillStyle = grad; ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.rect(p.x, 0, 60, p.top); ctx.fill(); ctx.stroke();
+        ctx.fillRect(p.x - 5, p.top - 25, 70, 25); ctx.strokeRect(p.x - 5, p.top - 25, 70, 25);
+        ctx.beginPath(); ctx.rect(p.x, canvas.height - p.bottom, 60, p.bottom); ctx.fill(); ctx.stroke();
+        ctx.fillRect(p.x - 5, canvas.height - p.bottom, 70, 25); ctx.strokeRect(p.x - 5, canvas.height - p.bottom, 70, 25);
+    });
+}
+
+function drawClouds() {
+    clouds.forEach(c => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${c.opacity})`;
+        ctx.beginPath(); ctx.arc(c.x, c.y, 25 * c.scale, 0, Math.PI*2); ctx.fill();
+        if (gameActive && !isPaused && !trollActive) { 
+            c.x -= c.speed;
+            if (c.x < -100) Object.assign(c, createCloud());
+        }
+    });
+}
+
+function update() {
+    if (!gameActive || isPaused || trollActive) return; 
+    bird.velocity += bird.gravity;
+    bird.y += bird.velocity;
+    if (frame % 100 === 0) {
+        let gap = 160;
+        let top = Math.random() * (canvas.height - gap - 150) + 50;
+        pipes.push({ x: canvas.width, top: top, bottom: canvas.height - top - gap, passed: false });
+    }
+    for (let i = pipes.length - 1; i >= 0; i--) {
+        let p = pipes[i]; p.x -= 3.2;
+        if (!p.passed && bird.x > p.x + 60) {
+            score++; scoreDisplay.innerText = score; p.passed = true;
+            if (score === 40) showTroll();
+        }
+        if (bird.x + 12 > p.x && bird.x - 12 < p.x + 60) {
+            if (bird.y - 10 < p.top || bird.y + 10 > canvas.height - p.bottom) gameActive = false;
+        }
+        if (p.x < -100) pipes.splice(i, 1);
+    }
+    if (bird.y + 15 > canvas.height || bird.y - 15 < 0) gameActive = false;
+    frame++;
+}
+
+function showTroll() {
+    trollActive = true;
+    // Gán ảnh ngay lúc hù để giấu link ảnh trong code HTML
+    trollOverlay.src = (window.innerWidth <= 768) ? mobileImg : pcImg;
+    trollOverlay.style.display = 'block';
+    
+    if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
+
+    screamSound.currentTime = 1; 
+    screamSound.play().catch(e => console.log("Sound play error"));
+
+    setTimeout(() => {
+        trollOverlay.style.display = 'none';
+        trollActive = false;
+        screamSound.pause();
+        gameActive = false; 
+    }, 4000); 
+}
+
+function loop() {
+    let sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    sky.addColorStop(0, '#4ec0ca'); sky.addColorStop(1, '#dff9fb');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    drawClouds(); drawPipes(); drawBird(); update();
+    
+    if (!gameActive && !trollActive) { 
+        ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.font = "bold 40px Arial";
+        ctx.fillText("nonn!", canvas.width/2, canvas.height/2 - 20);
+        ctx.font = "20px Arial"; ctx.fillText("Chạm/Click để chơi lại", canvas.width/2, canvas.height/2 + 30);
+    }
+    requestAnimationFrame(loop);
+}
+
+function reset() {
+    bird.y = 300; bird.velocity = 0; pipes = []; score = 0;
+    scoreDisplay.innerText = 0; frame = 0; gameActive = true; 
+    isPaused = false; trollActive = false; trollOverlay.style.display = 'none';
+    screamSound.pause();
+}
+
+function handleJump(e) {
+    if(e) e.preventDefault(); 
+    if(isPaused || trollActive) return;
+    if(gameActive) {
+        bird.velocity = bird.jump;
+    } else {
+        reset();
+    }
+}
+
+window.addEventListener('keydown', e => { 
+    if(e.code === 'Space') handleJump(e);
+    if(e.key.toLowerCase() === 'p' && gameActive && !trollActive) isPaused = !isPaused;
+});
+canvas.addEventListener('mousedown', handleJump);
+canvas.addEventListener('touchstart', handleJump, { passive: false });
+
+loop();
+</script>
+</body>
+</html>
+
+
