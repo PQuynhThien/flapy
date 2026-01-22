@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Bird Ultimate</title>
-    <meta property="og:image" content="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5i0mQDnN6w1lcgFPcS45IXwDwKZyZ2xbwRw&s">
+    <title>Flappy Bird Ultimate - Pro</title>
     <style>
         body { 
             margin: 0; overflow: hidden; display: flex; flex-direction: column; 
@@ -20,7 +19,6 @@
         .instructions { position: absolute; top: 20px; color: #ffd700; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; z-index: 20; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); text-align: center;}
         .footer { color: #555; margin-top: 15px; font-size: 18px; font-weight: bold; }
 
-        /* Style cho ảnh hù - Phủ kín màn hình */
         .troll-img {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
             z-index: 9999; display: none; background: black; object-fit: cover;
@@ -32,14 +30,14 @@
     <div class="instructions">"P" để tạm dừng!</div>
     <div id="score-container"><h1 id="score">0</h1></div>
     <canvas id="game"></canvas>
-    <div class="footer">By: Quỳnh Thiện</div>
+    <div class="footer">By: Quỳnh Thiệnnn</div>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 
-// 1. TẠO THẺ ẢNH HÙ TRONG SUỐT QUÁ TRÌNH CHẠY (ẨN DANH)
+// 1. KHỞI TẠO ẢNH VÀ ÂM THANH
 const trollOverlay = document.createElement('img');
 trollOverlay.className = 'troll-img';
 document.body.appendChild(trollOverlay);
@@ -48,6 +46,20 @@ const pcImg = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRy3bNwDRuZU
 const mobileImg = "https://i.guim.co.uk/img/media/775e8cb61ce6adc0c20352a1f4d57cee6312f259/0_1_810_486/master/810.jpg?width=1200&height=1200&quality=85&auto=format&fit=crop&s=fe205a02fe349852d1a76a260f273aee";
 
 const screamSound = new Audio("https://www.myinstants.com/media/sounds/screamers-clamoring-with-halloween-music.mp3");
+screamSound.preload = "auto";
+screamSound.load();
+
+let audioUnlocked = false;
+
+// Hàm mở khóa âm thanh cho trình duyệt di động
+function unlockAudio() {
+    if (audioUnlocked) return;
+    screamSound.play().then(() => {
+        screamSound.pause();
+        screamSound.currentTime = 1; // Nhảy sẵn tới giây thứ 1
+        audioUnlocked = true;
+    }).catch(() => {});
+}
 
 canvas.width = 450;
 canvas.height = 650;
@@ -61,7 +73,6 @@ let gameActive = true;
 let isPaused = false;
 let trollActive = false;
 
-// Đồ họa gốc được giữ nguyên
 function createCloud(isInitial = false) {
     return {
         x: isInitial ? Math.random() * canvas.width : canvas.width + 100,
@@ -143,15 +154,17 @@ function update() {
 
 function showTroll() {
     trollActive = true;
-    // Kiểm tra thiết bị ngay lúc hù
+    
+    // Phát âm thanh ngay lập tức tại giây thứ 1
+    screamSound.currentTime = 1; 
+    screamSound.play().catch(e => console.log("Audio play blocked"));
+
+    // Hiển thị ảnh
     trollOverlay.src = (window.innerWidth <= 768) ? mobileImg : pcImg;
     trollOverlay.style.display = 'block';
     
-    // Rung điện thoại cực mạnh
+    // Rung điện thoại
     if (navigator.vibrate) navigator.vibrate([500, 110, 500, 110, 450]);
-
-    screamSound.currentTime = 1; 
-    screamSound.play().catch(e => console.log("Sound error"));
 
     setTimeout(() => {
         trollOverlay.style.display = 'none';
@@ -170,7 +183,7 @@ function loop() {
     if (!gameActive && !trollActive) { 
         ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.font = "bold 40px Arial";
-        ctx.fillText("nonn!", canvas.width/2, canvas.height/2 - 20);
+        ctx.fillText("NON QUÁ!", canvas.width/2, canvas.height/2 - 20);
         ctx.font = "20px Arial"; ctx.fillText("Chạm/Click để chơi lại", canvas.width/2, canvas.height/2 + 30);
     }
     requestAnimationFrame(loop);
@@ -185,6 +198,10 @@ function reset() {
 
 function handleJump(e) {
     if(e) e.preventDefault(); 
+    
+    // Mở khóa âm thanh ở lần tương tác đầu tiên
+    unlockAudio();
+
     if(isPaused || trollActive) return;
     if(gameActive) {
         bird.velocity = bird.jump;
