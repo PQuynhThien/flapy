@@ -37,7 +37,7 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 
-// 1. KHỞI TẠO ẢNH VÀ ÂM THANH
+
 const trollOverlay = document.createElement('img');
 trollOverlay.className = 'troll-img';
 document.body.appendChild(trollOverlay);
@@ -51,12 +51,12 @@ screamSound.load();
 
 let audioUnlocked = false;
 
-// Hàm mở khóa âm thanh cho trình duyệt di động
+
 function unlockAudio() {
     if (audioUnlocked) return;
     screamSound.play().then(() => {
         screamSound.pause();
-        screamSound.currentTime = 1; // Nhảy sẵn tới giây thứ 1
+        screamSound.currentTime = 1; 
         audioUnlocked = true;
     }).catch(() => {});
 }
@@ -155,15 +155,15 @@ function update() {
 function showTroll() {
     trollActive = true;
     
-    // Phát âm thanh ngay lập tức tại giây thứ 1
+    
     screamSound.currentTime = 1; 
     screamSound.play().catch(e => console.log("Audio play blocked"));
 
-    // Hiển thị ảnh
+    
     trollOverlay.src = (window.innerWidth <= 768) ? mobileImg : pcImg;
     trollOverlay.style.display = 'block';
     
-    // Rung điện thoại
+   
     if (navigator.vibrate) navigator.vibrate([500, 110, 500, 110, 450]);
 
     setTimeout(() => {
@@ -199,7 +199,7 @@ function reset() {
 function handleJump(e) {
     if(e) e.preventDefault(); 
     
-    // Mở khóa âm thanh ở lần tương tác đầu tiên
+    
     unlockAudio();
 
     if(isPaused || trollActive) return;
@@ -221,3 +221,4 @@ loop();
 </script>
 </body>
 </html>
+
