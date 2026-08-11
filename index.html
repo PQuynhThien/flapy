@@ -37,7 +37,6 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 
-
 const trollOverlay = document.createElement('img');
 trollOverlay.className = 'troll-img';
 document.body.appendChild(trollOverlay);
@@ -50,7 +49,6 @@ screamSound.preload = "auto";
 screamSound.load();
 
 let audioUnlocked = false;
-
 
 function unlockAudio() {
     if (audioUnlocked) return;
@@ -67,6 +65,8 @@ canvas.height = 650;
 let bird = { x: 80, y: 300, radius: 15, velocity: 0, gravity: 0.22, jump: -4.8, rotation: 0 };
 let pipes = [];
 let clouds = [];
+let textClouds = []; 
+let hasSpawnedTextCloud = false; 
 let frame = 0;
 let score = 0;
 let gameActive = true;
@@ -82,6 +82,17 @@ function createCloud(isInitial = false) {
         opacity: 0.4 + Math.random() * 0.5
     };
 }
+
+
+function createTextCloud() {
+    return {
+        x: canvas.width + 50,
+        y: 120 + Math.random() * 100,
+        speed: 1.0,
+        text: "thiện dz"
+    };
+}
+
 for(let i=0; i<8; i++) clouds.push(createCloud(true));
 
 function drawBird() {
@@ -118,6 +129,7 @@ function drawPipes() {
 }
 
 function drawClouds() {
+    
     clouds.forEach(c => {
         ctx.fillStyle = `rgba(255, 255, 255, ${c.opacity})`;
         ctx.beginPath(); ctx.arc(c.x, c.y, 25 * c.scale, 0, Math.PI*2); ctx.fill();
@@ -126,12 +138,31 @@ function drawClouds() {
             if (c.x < -100) Object.assign(c, createCloud());
         }
     });
+
+    
+    textClouds.forEach((tc, index) => {
+        ctx.save();
+        ctx.font = "bold 34px 'Segoe UI', sans-serif";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
+        ctx.shadowBlur = 10;
+        ctx.fillText(tc.text, tc.x, tc.y);
+        ctx.restore();
+
+        if (gameActive && !isPaused && !trollActive) {
+            tc.x -= tc.speed;
+            if (tc.x < -180) {
+                textClouds.splice(index, 1);
+            }
+        }
+    });
 }
 
 function update() {
     if (!gameActive || isPaused || trollActive) return; 
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
+
     if (frame % 100 === 0) {
         let gap = 160;
         let top = Math.random() * (canvas.height - gap - 150) + 50;
@@ -141,6 +172,13 @@ function update() {
         let p = pipes[i]; p.x -= 3.2;
         if (!p.passed && bird.x > p.x + 60) {
             score++; scoreDisplay.innerText = score; p.passed = true;
+            
+            
+            if (score === 30 && !hasSpawnedTextCloud) {
+                textClouds.push(createTextCloud());
+                hasSpawnedTextCloud = true;
+            }
+
             if (score === 40) showTroll();
         }
         if (bird.x + 12 > p.x && bird.x - 12 < p.x + 60) {
@@ -155,15 +193,12 @@ function update() {
 function showTroll() {
     trollActive = true;
     
-    
     screamSound.currentTime = 1; 
     screamSound.play().catch(e => console.log("Audio play blocked"));
 
-    
     trollOverlay.src = (window.innerWidth <= 768) ? mobileImg : pcImg;
     trollOverlay.style.display = 'block';
     
-   
     if (navigator.vibrate) navigator.vibrate([500, 110, 500, 110, 450]);
 
     setTimeout(() => {
@@ -190,7 +225,8 @@ function loop() {
 }
 
 function reset() {
-    bird.y = 300; bird.velocity = 0; pipes = []; score = 0;
+    bird.y = 300; bird.velocity = 0; pipes = []; textClouds = []; score = 0;
+    hasSpawnedTextCloud = false; 
     scoreDisplay.innerText = 0; frame = 0; gameActive = true; 
     isPaused = false; trollActive = false; trollOverlay.style.display = 'none';
     screamSound.pause();
@@ -198,7 +234,6 @@ function reset() {
 
 function handleJump(e) {
     if(e) e.preventDefault(); 
-    
     
     unlockAudio();
 
@@ -221,6 +256,3 @@ loop();
 </script>
 </body>
 </html>
-
-
-
